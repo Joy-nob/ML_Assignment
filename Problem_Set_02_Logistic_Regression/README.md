@@ -1,192 +1,175 @@
-# Problem Set 01: CNN-Based Pneumonia Classification
+# Problem Set 02 — Bank Marketing Logistic Regression
 
-## 1. Problem Description
+## 1. Overview
 
-The objective of this assignment is to develop a Convolutional Neural Network (CNN) to classify pediatric chest X-ray images into two classes:
+This project develops a **Logistic Regression classifier** to predict whether a bank customer will subscribe to a term deposit (`yes` or `no`) using the Bank Marketing dataset.
 
-* **NORMAL**
-* **PNEUMONIA**
-
-The dataset contains chest X-ray images divided into training, validation, and test sets.
+The objective is to build a binary classification model, preprocess the numerical and categorical attributes appropriately, and evaluate the model using multiple classification metrics.
 
 ## 2. Dataset
 
-The chest X-ray dataset was provided externally as part of the assignment and was stored in Google Drive for use with Google Colab.
+The dataset contains **45,211 customer records** and **17 columns**:
 
-The dataset contains two classes:
+* **16 input features**
+* **1 target variable (`y`)**
 
-* NORMAL
-* PNEUMONIA
+The target variable contains two classes:
 
-The images are grayscale JPEG images with varying original dimensions.
+* `no`: 39,922 samples (88.30%)
+* `yes`: 5,289 samples (11.70%)
 
-The dataset was not uploaded to GitHub because of its size. The notebook accesses the dataset from Google Drive.
+### Numerical Features
 
-### Dataset Distribution
+* age
+* balance
+* day
+* duration
+* campaign
+* pdays
+* previous
 
-The original dataset inspection found:
+### Categorical Features
 
-| Split      | NORMAL | PNEUMONIA | Total |
-| ---------- | -----: | --------: | ----: |
-| Train      |  1,341 |     3,876 | 5,217 |
-| Test       |    234 |       390 |   624 |
-| Validation |      8 |         8 |    16 |
+* job
+* marital
+* education
+* default
+* housing
+* loan
+* contact
+* month
+* poutcome
 
-Because the provided validation set contained only 16 images, a new stratified validation set was created from the training data.
+The dataset contains no missing (`NaN`) values and no duplicate records.
 
-The resulting split was:
+Some categorical attributes contain the value `unknown`. These values were retained as valid categories rather than removing the corresponding records.
 
-| Split      | NORMAL | PNEUMONIA | Total |
-| ---------- | -----: | --------: | ----: |
-| Training   |  1,207 |     3,488 | 4,695 |
-| Validation |    134 |       388 |   522 |
-| Test       |    234 |       390 |   624 |
+The dataset was provided separately and is **not included in this repository**.
 
-The test set was kept untouched until final evaluation.
+## 3. Methodology
 
-## 3. Data Preprocessing
+### Data Preparation
 
-The following preprocessing steps were applied:
+The target variable was converted into binary values:
 
-1. Images were loaded as grayscale images.
-2. Images were resized to **224 × 224** pixels.
-3. Pixel values were normalized from the range 0–255 to **0–1**.
-4. Training and validation datasets were created using TensorFlow's `tf.data` pipeline.
-5. A batch size of **32** was used.
-6. The training data was shuffled and prefetched for efficient training.
+* `no` → `0`
+* `yes` → `1`
 
-The images were also checked for corruption, and no corrupted images were found.
+The dataset was divided into training and testing sets using an **80/20 stratified split**.
 
-## 4. Data Augmentation
+* Training samples: 36,168
+* Testing samples: 9,043
 
-To improve generalization and reduce overfitting, augmentation was applied during training.
+Stratification was used to maintain approximately the same class distribution in both sets because the target classes are imbalanced.
 
-The following transformations were used:
+### Feature Preprocessing
 
-* Random horizontal flipping
-* Random rotation of up to approximately 5%
-* Random zoom of up to approximately 5%
+Two preprocessing approaches were applied:
 
-Augmentation was applied only during training. The validation and test images were not augmented.
+**Numerical features:**
 
-## 5. Handling Class Imbalance
+* Standardized using `StandardScaler`
 
-The training data contained considerably more pneumonia images than normal images.
+**Categorical features:**
 
-Class weights were therefore used during training:
+* Converted to numerical form using `OneHotEncoder`
+* `handle_unknown="ignore"` was used so that unseen categories would not cause errors during prediction.
 
-* **NORMAL:** 1.9449
-* **PNEUMONIA:** 0.6730
+A `ColumnTransformer` was used to combine both preprocessing steps.
 
-This gives greater importance to the underrepresented NORMAL class during loss calculation.
+### Model
 
-## 6. CNN Architecture
+The classification model is **Logistic Regression**.
 
-A custom CNN was developed using TensorFlow/Keras.
+The model was configured with:
 
-The architecture consists of:
+* `class_weight="balanced"`
+* `max_iter=1000`
+* `random_state=42`
 
+`class_weight="balanced"` was used to reduce the effect of the significant class imbalance and improve the model's ability to identify customers who subscribe to a term deposit.
 
-Input: 224 × 224 × 1
-        ↓
-Data Augmentation
-        ↓
-Conv2D (32 filters, 3×3)
-        ↓
-MaxPooling2D
-        ↓
-Conv2D (64 filters, 3×3)
-        ↓
-MaxPooling2D
-        ↓
-Conv2D (128 filters, 3×3)
-        ↓
-MaxPooling2D
-        ↓
-GlobalAveragePooling2D
-        ↓
-Dense (128, ReLU)
-        ↓
-Dropout (0.5)
-        ↓
-Dense (1, Sigmoid)
+## 4. Model Evaluation
 
+The model was evaluated on the unseen test set.
 
-The model was compiled using:
-
-* **Optimizer:** Adam
-* **Learning rate:** 0.001
-* **Loss function:** Binary Cross-Entropy
-* **Batch size:** 32
-* **Maximum epochs:** 15
-* **Early stopping:** Enabled with validation loss monitoring
-
-The best validation weights were restored after training.
-
-## 7. Training Results
-
-Training was performed using a GPU in Google Colab.
-
-The model trained for 11 epochs before early stopping.
-
-The best observed validation performance was approximately:
-
-* **Validation Accuracy:** 78.35%
-* **Validation Loss:** 0.4388
-
-Training and validation accuracy/loss plots are included in the notebook.
-
-## 8. Test Results
-
-The trained model was evaluated on the untouched test set containing 624 images.
-
-### Overall Performance
-
-| Metric    |      Score |
-| --------- | ---------: |
-| Accuracy  | **62.34%** |
-| Precision | **75.58%** |
-| Recall    | **58.72%** |
-| F1-score  | **66.09%** |
+| Metric    |  Score |
+| --------- | -----: |
+| Accuracy  | 84.57% |
+| Precision | 41.82% |
+| Recall    | 81.47% |
+| F1-score  | 55.27% |
+| ROC-AUC   | 90.79% |
 
 ### Classification Report
 
-| Class                | Precision | Recall |   F1-score | Support |
-| -------------------- | --------: | -----: | ---------: | ------: |
-| NORMAL               |    49.84% | 68.38% |     57.66% |     234 |
-| PNEUMONIA            |    75.58% | 58.72% |     66.09% |     390 |
-| **Overall Accuracy** |           |        | **62.34%** | **624** |
+| Class | Precision | Recall | F1-score |
+| ----- | --------: | -----: | -------: |
+| No    |    97.19% | 84.98% |   90.68% |
+| Yes   |    41.82% | 81.47% |   55.27% |
 
-## 9. Confusion Matrix
+The model achieved a **ROC-AUC of 0.9079**, indicating strong ability to distinguish between customers who do and do not subscribe.
 
-The confusion matrix obtained on the test set was:
+The recall for the `Yes` class was **81.47%**, meaning the model successfully identified most of the actual term-deposit subscribers.
 
+## 5. Confusion Matrix
 
-                 Predicted
-              NORMAL  PNEUMONIA
-Actual NORMAL    160       74
-       PNEUMONIA 161      229
+The confusion matrix was:
 
+```text
+[[6786 1199]
+ [ 196  862]]
+```
 
-The model correctly classified 160 NORMAL images and 229 PNEUMONIA images.
+This corresponds to:
 
-## 10. Findings
+* **True Negatives:** 6,786
+* **False Positives:** 1,199
+* **False Negatives:** 196
+* **True Positives:** 862
 
-The CNN successfully learned patterns from the chest X-ray training data and achieved approximately 62.34% accuracy on the unseen test set.
+The model correctly identified **862 of the 1,058 actual subscribers** in the test set.
 
-The results show that the model performed better at precision for the PNEUMONIA class, while the NORMAL class had higher recall. The difference between validation and test performance also indicates that the model did not generalize perfectly to the unseen test images.
+The relatively low precision for the `Yes` class is partly a result of using balanced class weights, which makes the model more willing to classify customers as potential subscribers in order to reduce missed positive cases.
 
-The experiment demonstrates the complete CNN classification workflow, including data preprocessing, augmentation, class imbalance handling, model training, and evaluation.
+## 6. Influential Features
 
-## 11. Technologies Used
+The largest Logistic Regression coefficients included:
 
-* Python
-* TensorFlow / Keras
-* NumPy
-* Pandas
-* Matplotlib
-* Scikit-learn
-* Pillow
-* Google Colab
-* Google Drive
+| Feature            | Coefficient |
+| ------------------ | ----------: |
+| poutcome = success |     +1.8245 |
+| month = mar        |     +1.7220 |
+| duration           |     +1.5258 |
+| month = jan        |     -1.3026 |
+| month = oct        |     +1.2763 |
+| contact = unknown  |     -1.0933 |
+| month = jul        |     -1.0678 |
+| month = sep        |     +0.9848 |
+| month = nov        |     -0.9827 |
+| month = aug        |     -0.9026 |
+| poutcome = unknown |     -0.7869 |
+| month = may        |     -0.7252 |
+| month = dec        |     +0.7137 |
+| poutcome = failure |     -0.6855 |
+| job = student      |     +0.6573 |
 
+Positive coefficients increase the model's tendency toward the `yes` class, while negative coefficients increase the tendency toward the `no` class, with other features held constant.
+
+These coefficients represent model associations and should not be interpreted as direct causal relationships.
+
+## 7. Findings
+
+The Logistic Regression model performed well overall, achieving **84.57% accuracy** and **0.9079 ROC-AUC**.
+
+The model was particularly effective at identifying potential term-deposit subscribers, achieving **81.47% recall** for the `Yes` class. However, its precision for this class was lower at **41.82%**, meaning that a considerable number of customers predicted as subscribers did not actually subscribe.
+
+The coefficient analysis showed that previous campaign outcomes, call duration, contact type, month, and certain job categories were among the most influential predictors in the trained model.
+
+## 8. Conclusion
+
+The project demonstrates how Logistic Regression can be applied to a real-world binary classification problem involving both numerical and categorical data.
+
+Using appropriate preprocessing, stratified sampling, one-hot encoding, feature scaling, and balanced class weights produced a model with strong discrimination and good recall for the minority `Yes` class.
+
+The complete implementation is provided in the accompanying Jupyter Notebook.
